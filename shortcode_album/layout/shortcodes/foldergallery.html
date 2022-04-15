@@ -1,0 +1,47 @@
+{{ $currentPage := . }}
+
+<style>
+  div.gallery {
+     display: flex;
+     flex-wrap: wrap;
+  }
+        div.gallery a {
+            flex-grow: 1;
+            object-fit: cover;
+            margin: 2px;
+            display: flex;
+        }
+
+        div.gallery a img {            
+            height: 200px;
+            object-fit: cover;
+            flex-grow: 1;
+        }
+
+</style>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.4.0/jquery.fancybox.min.css" />
+
+    <div class="gallery">
+    {{ $base := .Get "src" }} <!-- The src in the shortcode -->
+    {{ $path := print "static/" (.Get "src") }} <!-- The actual path where the files are stored (based on Hugo project root folder) -->
+
+	{{ range (readDir $path) }}
+        {{- $thumbext := "-thumb" }} <!-- Look for the same filename with "-thumb". This must be pre-generated. -->
+        {{- $isthumb := .Name | findRE ($thumbext | printf "%s\\.") }}<!-- is the current file a thumbnail image? -->
+        {{- $isimg := lower .Name | findRE "\\.(gif|jpg|jpeg|tiff|png|bmp)" }}<!-- is the current file an image? -->
+        {{- $ismeta := lower .Name | findRE "\\.meta" }} <!-- is the current file the .meta file containing metadata? -->
+        {{- $legend := "" }} <!-- we set the $legend to use it later (we will red data from the meta file) -->
+
+        {{- if and $isimg (and (not $isthumb) (not $ismeta))}} <!-- because all files have the same prefix, we iterate on images, not thumbnails nor meta files -->
+			{{- $thumb := .Name | replaceRE "(\\.)" ($thumbext | printf "%s.") }} <!-- display the thumbnail on the main page -->
+			{{ $metadata := readFile (print "/" $path "/" .Name ".meta") }} <!-- access the meta file from root dir. It doesn't work with relative path -->
+			{{ $metadata = $metadata | unmarshal }} <!-- Because it's a JSON, we need to recover fields and data -->
+			{{ $legend = $metadata.Title }} <!-- as we said before, we set the legend here -->
+
+        <a data-fancybox="gallery" href="/{{ $base }}/{{ .Name }}" data-caption="{{ $legend }}"> <!-- when an image is clicked, the fancybox popup retrieves the metadata -->
+            <img src="/{{ $base  }}/{{ $thumb }}">  <br/> <!-- we display thumbnails for faster loading. When clicked, the full image displays -->         
+        </a>
+        {{- end }}
+	{{ end }}
+    </div>
